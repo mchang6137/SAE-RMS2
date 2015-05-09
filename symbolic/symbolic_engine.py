@@ -4,11 +4,6 @@ from z3 import *
 
 # Remarks z3
 # Power ** has to be with Real
-# Modulo % has to be with Int
-
-# questions:
-# - py_sim.py line 53
-# - 'x': None ok? model_completion, None values?
 
 # Command line: export PYTHONPATH=$PYTHONPATH:/Users/rikmelis/Desktop/Z3HOME/bin in .bash_profile
 
@@ -25,19 +20,17 @@ class SymbolicEngine:
     # Note: all returned inputs should explore different program paths
     def explore(self):
         inputs = generate_inputs(self.function)
-        # start_state is a tuple with the input variables (with assignments) and a list of all the constraints at that point
         start_state = (inputs, [])
-        f = FunctionEvaluator(self.function, self.program_ast, start_state)  
+        f = FunctionEvaluator(self.function, self.program_ast, start_state)
         input_to_ret = f.get_input_to_ret()
         assertion_violations_to_input = f.violated_assertions
         return (input_to_ret, assertion_violations_to_input)
-
 
 ###############
 # Interpreter #
 ###############
 
-def run_expr(expr, f, state = (None, None)):
+def run_expr(expr, f, state):
     if type(expr) == ast.Tuple:
         rs = [(state[1], [])]
         for el in expr.elts: 
@@ -153,9 +146,9 @@ def run_stmt(stmt, f, state):
         new_states = []
         for (assignments, constraints, cond) in run_expr(stmt.test, f, state):
             ifState = (assignments, constraints + [cond])               
-            elseState = (assignments, constraints + [Not(cond)])    
+            elseState = (assignments, constraints + [Not(cond)])
             new_states_if = run_body(stmt.body, f, ifState)
-            if len(stmt.orelse) > 0:                              
+            if len(stmt.orelse) > 0:              
                 new_states_if += run_body(stmt.orelse, f, elseState) 
             elif len(new_states_if) == 0:
                 new_states_if = [elseState]
@@ -219,15 +212,23 @@ class FunctionEvaluator:
 
         self.function = function
         self.program_ast = program_ast
-        self.start_state = start_state
+        self.start_state = start_state # start_state is a tuple with the input variables (with assignments) and a list of all the constraints at that point
         self.main_f = main_f
-        # paths is a list of tuples of 3 elements: (input variables, constraints, return value). each tuple gives one possible execution path      
-        self.paths = []
+        self.paths = [] # paths is a list of tuples of 3 elements: (input variables, constraints, return value). each tuple gives one possible execution path    
         self.violated_assertions = {}
-
+    
     def get_paths(self):
         run_body(self.function.body, self, self.start_state)
+        print self.paths
         return self.paths
+    
+    def eval(self):
+        for (_, constraints, ret) in self.get_paths():
+            s = Solver()
+            s.add(constraints)
+            if s.check() == z3.sat:
+                return ret
+        return None
     
     def get_input_to_ret(self):
         input_to_ret = []
@@ -238,7 +239,7 @@ class FunctionEvaluator:
                 m = s.model()
                 return_value = get_return_value(ret, m)
                 # take 0 if m[val] is None (its value doesn't matter in this case)
-                input_to_ret.append(({key : m[val] if m[val] is not None else 0 
+                input_to_ret.append(({key : m[val] if m[val] is not None else 0
                     for key,val in self.start_state[0].items()}, return_value))
         return input_to_ret
 
@@ -248,10 +249,13 @@ class FunctionEvaluator:
 
 # f: function for which to generate inputs
 # inputs: dictionary that maps argument names to values. e.g. {'x': 42 }
-def generate_inputs(f):
+def generate_inputs(f, zero_inputs = False):
     for arg in f.args.args:
         assert (type(arg) == ast.Name)
-    return {arg.id: Int(arg.id + "0") for arg in f.args.args}
+    if zero_inputs:
+        return {arg.id: 0 for arg in f.args.args}
+    else:
+        return {arg.id: Int(arg.id + "0") for arg in f.args.args}
 
 def find_function(p, function_name):
     assert (type(p) == ast.Module)
@@ -261,7 +265,7 @@ def find_function(p, function_name):
     raise LookupError('Function %s not found' % function_name)
 
 def get_return_value(ret, m):
-    if isinstance(ret, int) or isinstance(ret, bool): 
+    if isinstance(ret, int) or isinstance(ret, bool):
         return ret
     else:
         return_value = m.eval(ret, model_completion=True)

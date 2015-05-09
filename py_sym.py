@@ -14,9 +14,9 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def run_app(program):
     program_ast = ast.parse(program)
-    fnc = find_function(program_ast, 'main')
-    inputs = generate_inputs(fnc, {})
-    f = FunctionEvaluator(fnc, program_ast, inputs)
+    function = find_function(program_ast, 'main')
+    inputs = generate_inputs(function, True)
+    f = FunctionEvaluator(function, program_ast, (inputs, []))
     ret = f.eval()
     print("Executed function 'main' with inputs '%s' and result '%s'" % (str(inputs), str(ret)))
 
@@ -50,9 +50,13 @@ def eval_app(program):
         assert (type(oracle.body[0].value) == ast.List)
         expected = set()
         for expr in oracle.body[0].value.elts:
-            # expected.add(expr.n)
-            expected.add(run_expr(expr, None)[0][2])
-            # expected.add(run_expr(expr, None)) # original
+            if type(expr) == ast.Num: 
+                expected.add(expr.n)
+            if type(expr) == ast.Name: 
+                if expr.id == 'True':
+                    expected.add(True)
+                elif expr.id == 'False':
+                    expected.add(False)
 
         return_values = set([ret for input,ret in input_to_ret])
         if expected == return_values:
