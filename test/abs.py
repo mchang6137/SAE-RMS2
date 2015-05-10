@@ -1,16 +1,9 @@
-def main(v, w):
-    if v > 0:
-        z = -1
+def abs(v):
+    if v >= 0:
+        return v
     else:
-        z = 1
-    a = rik(w)
-    return z
+        return -1 * v
 
-def rik(w):
-    assert(w > 0)
-    t = w
-    return 0  
-
-def f(w):
-    assert(w < 1000)
-    return 2*w
+def main(x):
+    assert( abs(x) >= 0 and abs(x) == abs(-x))
+    return 0

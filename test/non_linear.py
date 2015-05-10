@@ -1,16 +1,18 @@
-def ab(v):
-    (a,b) = (True, False)
-    if v >= 0:
-        return True
-    else:
-        return False
+def twice(v):
+    return v + v
 
-def summa(v, w):
-    return v + w
+
+def test(x, y):
+    z = twice(y)
+    if (x == z):
+        if (x > y + 10):
+            return -1
+        return 1
+    return 0
+
 
 def main(x, y):
-    z = ab(x) and ab(x)
-    return z
+    return test(x, y)
 
 def expected_result():
-    return [False, -1, 2*4]
+    return [0, -1, 1]

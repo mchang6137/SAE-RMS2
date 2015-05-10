@@ -219,7 +219,6 @@ class FunctionEvaluator:
     
     def get_paths(self):
         run_body(self.function.body, self, self.start_state)
-        print self.paths
         return self.paths
     
     def eval(self):
