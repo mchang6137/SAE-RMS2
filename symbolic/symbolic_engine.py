@@ -2,11 +2,9 @@ import ast
 import numbers
 from z3 import *
 
-# Remarks z3
-# Power ** has to be with Real
-
-# Command line: export PYTHONPATH=$PYTHONPATH:/Users/rikmelis/Desktop/Z3HOME/bin in .bash_profile
-
+# Remarks:
+# - The power operator (**) is only supprted for Reals in z3, not for Ints. If there is a constraint with a variable of the z3 Int type raised to a power, we don't consider this path. Powers on integer constants are fine.
+# - We had to change the py_sim.py file in 2 places, because of our symbolic_engine.py. In case py_sim.py is used for evaluation, please use our version of the file.
 
 class SymbolicEngine:
     def __init__(self, function_name, program_ast):
